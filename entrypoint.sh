@@ -50,10 +50,17 @@ mkdir -p /root/.nanobot/workspace/memory
 export SUPABASE_URL="${SUPABASE_URL}"
 export SUPABASE_KEY="${SUPABASE_KEY}"
 
-# Seed MEMORY.md with persistent knowledge (only if not already seeded)
-if [ ! -f /root/.nanobot/workspace/memory/MEMORY.md ]; then
+# Seed MEMORY.md with persistent knowledge (always overwrite on deploy to pick up changes)
 cat > /root/.nanobot/workspace/memory/MEMORY.md <<'MEMEOF'
 # Nanobot Persistent Memory
+
+## ⚠️ GROUNDING RULES (MANDATORY)
+- NEVER make up lead data. Every fact about a lead MUST come from a tool call (lead_lookup or leads_report).
+- When asked about a specific lead or phone number → use `lead_lookup` tool FIRST, then respond based on its output.
+- When asked for a report → use `leads_report` tool, then present the output. Do not add fabricated analysis.
+- If a tool returns no data or an error, say so honestly. NEVER fill gaps with invented information.
+- Do not guess project names, phone numbers, statuses, notes, dates, or priorities.
+- Do not say "9 days ago" unless the tool output confirms that number.
 
 ## Supabase Database
 - Project: TownPark Real Estate CRM
@@ -96,7 +103,6 @@ When asked about a specific lead by name or phone number, use the `lead_lookup` 
 - Does not want Lost/Junk leads in stale section
 MEMEOF
 echo "MEMORY.md seeded."
-fi
 
 # Start a minimal HTTP health check server in the background
 # (Render requires an open port to detect the service)

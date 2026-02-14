@@ -218,7 +218,9 @@ class LeadLookupTool(Tool):
     description = (
         "Look up a specific lead from the Supabase database by name or phone number. "
         "Returns full details including notes, status, project, dates. "
-        "Credentials are loaded from environment variables automatically."
+        "Credentials are loaded from environment variables automatically. "
+        "IMPORTANT: You MUST call this tool before answering any question about a specific lead. "
+        "Never guess or fabricate lead information."
     )
     parameters = {
         "type": "object",
