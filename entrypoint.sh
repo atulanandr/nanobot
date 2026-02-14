@@ -75,6 +75,12 @@ The tool automatically:
 
 DO NOT pass supabase_url or supabase_key to the tool — they are read from env vars.
 
+## Lead Lookup
+When asked about a specific lead by name or phone number, use the `lead_lookup` tool.
+- Pass the name or phone number as the `query` parameter
+- Returns full details: status, project, notes, dates, priority
+- NEVER fabricate or guess lead data — always use this tool to get real data
+
 ## Cron Jobs
 - Daily leads report: cron expression `0 9 * * *` (9:00 AM UTC daily)
 - Cron job message should be: "Generate the daily leads report using the leads_report tool and share it."

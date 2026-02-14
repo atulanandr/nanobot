@@ -158,7 +158,7 @@ class SupabaseLeadsReportTool(Tool):
 
         # Sort
         new_leads.sort(key=lambda x: x[0])
-        stale_leads.sort(key=lambda x: -x[1] if isinstance(x[1], int) else 0)
+        stale_leads.sort(key=lambda x: -x[0])
 
         # Build report
         report = []
@@ -209,6 +209,113 @@ class SupabaseLeadsReportTool(Tool):
             report.append("  All leads are up to date! ✅")
 
         return "\n".join(report)
+
+
+class LeadLookupTool(Tool):
+    """Look up a specific lead by name, phone number, or other field."""
+
+    name = "lead_lookup"
+    description = (
+        "Look up a specific lead from the Supabase database by name or phone number. "
+        "Returns full details including notes, status, project, dates. "
+        "Credentials are loaded from environment variables automatically."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Name or phone number to search for"
+            }
+        },
+        "required": ["query"]
+    }
+
+    async def execute(self, query: str, **kwargs: Any) -> str:
+        supabase_url = os.environ.get("SUPABASE_URL", "")
+        supabase_key = os.environ.get("SUPABASE_KEY", "")
+        if not supabase_url or not supabase_key:
+            return "Error: SUPABASE_URL and SUPABASE_KEY environment variables are not set."
+
+        query = query.strip()
+        headers = {
+            "apikey": supabase_key,
+            "Authorization": f"Bearer {supabase_key}",
+        }
+
+        # Fetch all leads and filter locally (simpler than complex PostgREST OR queries)
+        url = f"{supabase_url.rstrip('/')}/rest/v1/leads?select=*"
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                r = await client.get(url, headers=headers)
+                r.raise_for_status()
+                leads = r.json()
+
+                # Also fetch notes
+                notes_url = f"{supabase_url.rstrip('/')}/rest/v1/lead_notes?select=*&order=created_at.desc&limit=200"
+                lead_notes: dict[str, list[str]] = {}
+                try:
+                    rn = await client.get(notes_url, headers=headers)
+                    if rn.status_code == 200:
+                        for note in rn.json():
+                            lid = note.get("lead_id")
+                            if lid:
+                                lead_notes.setdefault(lid, []).append(note.get("content", ""))
+                except Exception:
+                    pass
+        except Exception as e:
+            return f"Error fetching leads: {e}"
+
+        # Search by name or phone (case-insensitive, partial match)
+        q_lower = query.lower().replace("+91", "").replace(" ", "").replace("-", "")
+        matches = []
+        for lead in leads:
+            name = (lead.get("lead_name") or "").lower()
+            phone = (lead.get("mobile_number") or "").replace("+91", "").replace(" ", "").replace("-", "")
+            if q_lower in name or q_lower in phone:
+                matches.append(lead)
+
+        if not matches:
+            return f"No leads found matching '{query}'."
+
+        now = datetime.now(timezone.utc)
+        results = []
+        for lead in matches:
+            lead_id = lead.get("id", "")
+            created = _parse_dt(lead.get("created_at"))
+            updated = _parse_dt(lead.get("updated_at"))
+            created_ago = f"{(now - created).days}d ago" if created else "unknown"
+            updated_ago = f"{(now - updated).days}d ago" if updated else "unknown"
+
+            lines = [
+                f"*{lead.get('lead_name', 'Unknown')}*",
+                f"  Phone: {lead.get('mobile_number', 'N/A')}",
+                f"  Project: {lead.get('project', 'N/A')}",
+                f"  Status: {lead.get('status', 'N/A')}",
+                f"  Priority: {lead.get('priority', 'N/A')}",
+                f"  Bucket: {lead.get('lead_bucket', 'N/A')}",
+                f"  Source: {lead.get('lead_source', 'N/A')}",
+                f"  Created: {created.strftime('%b %d, %Y') if created else 'N/A'} ({created_ago})",
+                f"  Last Updated: {updated.strftime('%b %d, %Y') if updated else 'N/A'} ({updated_ago})",
+            ]
+            if lead.get("site_visit_date"):
+                sv = _parse_dt(lead["site_visit_date"])
+                lines.append(f"  Site Visit Date: {sv.strftime('%b %d, %Y') if sv else lead['site_visit_date']}")
+            if lead.get("next_follow_up"):
+                fu = _parse_dt(lead["next_follow_up"])
+                lines.append(f"  Next Follow-up: {fu.strftime('%b %d, %Y') if fu else lead['next_follow_up']}")
+            if lead.get("notes"):
+                lines.append(f"  Notes: {lead['notes']}")
+            # Show all recent notes from lead_notes table
+            notes = lead_notes.get(lead_id, [])
+            if notes:
+                lines.append(f"  Recent Notes ({len(notes)}):")
+                for n in notes[:5]:
+                    lines.append(f"    • {n[:120]}")
+            results.append("\n".join(lines))
+
+        header = f"Found {len(matches)} lead(s) matching '{query}':\n"
+        return header + "\n\n".join(results)
 
 
 def _parse_dt(val: str | None) -> datetime | None:

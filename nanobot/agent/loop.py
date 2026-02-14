@@ -18,7 +18,7 @@ from nanobot.agent.tools.web import WebSearchTool, WebFetchTool
 from nanobot.agent.tools.message import MessageTool
 from nanobot.agent.tools.spawn import SpawnTool
 from nanobot.agent.tools.cron import CronTool
-from nanobot.agent.tools.supabase_leads import SupabaseLeadsReportTool
+from nanobot.agent.tools.supabase_leads import SupabaseLeadsReportTool, LeadLookupTool
 from nanobot.agent.memory import MemoryStore
 from nanobot.agent.subagent import SubagentManager
 from nanobot.session.manager import Session, SessionManager
@@ -117,8 +117,9 @@ class AgentLoop:
         if self.cron_service:
             self.tools.register(CronTool(self.cron_service))
 
-        # Supabase leads report tool
+        # Supabase leads tools
         self.tools.register(SupabaseLeadsReportTool())
+        self.tools.register(LeadLookupTool())
     
     def _set_tool_context(self, channel: str, chat_id: str) -> None:
         """Update context for all tools that need routing info."""
