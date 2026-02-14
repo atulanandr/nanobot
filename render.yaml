@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: nanobot
+    runtime: docker
+    plan: free
+    dockerCommand: /app/entrypoint.sh
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: PORT
+        value: "10000"

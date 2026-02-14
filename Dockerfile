@@ -33,8 +33,11 @@ WORKDIR /app
 # Create config directory
 RUN mkdir -p /root/.nanobot
 
-# Gateway default port
-EXPOSE 18790
+# Copy entrypoint script
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
-ENTRYPOINT ["nanobot"]
-CMD ["status"]
+# Gateway default port (Render uses 10000)
+EXPOSE 10000
+
+ENTRYPOINT ["/app/entrypoint.sh"]
