@@ -33,4 +33,22 @@ EOF
 
 mkdir -p /root/.nanobot/workspace
 
-exec nanobot gateway --port "${PORT:-10000}"
+# Start a minimal HTTP health check server in the background
+# (Render requires an open port to detect the service)
+python3 -c "
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import json, threading
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({'status': 'ok', 'service': 'nanobot'}).encode())
+    def log_message(self, *args): pass
+
+server = HTTPServer(('0.0.0.0', ${PORT:-10000}), Handler)
+server.serve_forever()
+" &
+
+exec nanobot gateway
