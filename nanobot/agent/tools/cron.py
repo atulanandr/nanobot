@@ -43,8 +43,8 @@ class CronTool(Tool):
                     "description": "Reminder message (for add)"
                 },
                 "every_seconds": {
-                    "type": "integer",
-                    "description": "Interval in seconds (for recurring tasks)"
+                    "type": "string",
+                    "description": "Interval in seconds as a number string (for recurring tasks), e.g. '3600'"
                 },
                 "cron_expr": {
                     "type": "string",
@@ -66,12 +66,21 @@ class CronTool(Tool):
         self,
         action: str,
         message: str = "",
-        every_seconds: int | None = None,
+        every_seconds: int | str | None = None,
         cron_expr: str | None = None,
         at: str | None = None,
         job_id: str | None = None,
         **kwargs: Any
     ) -> str:
+        # Sanitize inputs — some models pass "" instead of null, or strings instead of ints
+        if isinstance(every_seconds, str):
+            every_seconds = int(every_seconds) if every_seconds.strip().isdigit() else None
+        if cron_expr is not None and not cron_expr.strip():
+            cron_expr = None
+        if at is not None and not at.strip():
+            at = None
+        if job_id is not None and not job_id.strip():
+            job_id = None
         if action == "add":
             return self._add_job(message, every_seconds, cron_expr, at)
         elif action == "list":
