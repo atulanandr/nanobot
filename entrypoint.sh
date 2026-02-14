@@ -5,7 +5,7 @@ cat > /root/.nanobot/config.json <<EOF
   "agents": {
     "defaults": {
       "workspace": "/root/.nanobot/workspace",
-      "model": "gemini/gemini-2.0-flash",
+      "model": "groq/meta-llama/llama-4-scout-17b-16e-instruct",
       "maxTokens": 8192,
       "temperature": 0.7,
       "maxToolIterations": 20,
@@ -13,8 +13,8 @@ cat > /root/.nanobot/config.json <<EOF
     }
   },
   "providers": {
-    "gemini": {
-      "apiKey": "${GEMINI_API_KEY}",
+    "groq": {
+      "apiKey": "${GROQ_API_KEY}",
       "apiBase": null,
       "extraHeaders": null
     }
