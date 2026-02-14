@@ -96,11 +96,12 @@ class WebFetchTool(Tool):
     """Fetch and extract content from a URL using Readability."""
     
     name = "web_fetch"
-    description = "Fetch URL and extract readable content (HTML → markdown/text)."
+    description = "Fetch URL and extract readable content. Supports custom headers for APIs (e.g. Supabase, REST APIs). For JSON APIs, returns raw JSON."
     parameters = {
         "type": "object",
         "properties": {
             "url": {"type": "string", "description": "URL to fetch"},
+            "headers": {"type": "string", "description": "JSON string of HTTP headers, e.g. '{\"apikey\": \"xxx\", \"Authorization\": \"Bearer xxx\"}'"},
             "extractMode": {"type": "string", "description": "Extract mode: 'markdown' or 'text'. Default: markdown"},
             "maxChars": {"type": "string", "description": "Max characters to return as a number string, e.g. '50000'"}
         },
@@ -110,7 +111,7 @@ class WebFetchTool(Tool):
     def __init__(self, max_chars: int = 50000):
         self.max_chars = max_chars
     
-    async def execute(self, url: str, extractMode: str = "markdown", maxChars: int | str | None = None, **kwargs: Any) -> str:
+    async def execute(self, url: str, headers: str | dict | None = None, extractMode: str = "markdown", maxChars: int | str | None = None, **kwargs: Any) -> str:
         from readability import Document
 
         # Sanitize extractMode — models may pass invalid values like "json"
@@ -120,6 +121,17 @@ class WebFetchTool(Tool):
         if isinstance(maxChars, str):
             maxChars = int(maxChars) if maxChars.strip().isdigit() else None
         max_chars = maxChars or self.max_chars
+
+        # Parse custom headers
+        custom_headers: dict[str, str] = {}
+        if headers:
+            if isinstance(headers, str):
+                try:
+                    custom_headers = json.loads(headers)
+                except json.JSONDecodeError:
+                    pass
+            elif isinstance(headers, dict):
+                custom_headers = headers
 
         # Validate URL before fetching
         is_valid, error_msg = _validate_url(url)
@@ -132,7 +144,9 @@ class WebFetchTool(Tool):
                 max_redirects=MAX_REDIRECTS,
                 timeout=30.0
             ) as client:
-                r = await client.get(url, headers={"User-Agent": USER_AGENT})
+                req_headers = {"User-Agent": USER_AGENT}
+                req_headers.update(custom_headers)
+                r = await client.get(url, headers=req_headers)
                 r.raise_for_status()
             
             ctype = r.headers.get("content-type", "")
