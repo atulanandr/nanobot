@@ -5,8 +5,8 @@ cat > /root/.nanobot/config.json <<EOF
   "agents": {
     "defaults": {
       "workspace": "/root/.nanobot/workspace",
-      "model": "anthropic/claude-3.5-haiku",
-      "maxTokens": 4096,
+      "model": "meta-llama/llama-4-maverick:free",
+      "maxTokens": 8192,
       "temperature": 0.7,
       "maxToolIterations": 20,
       "memoryWindow": 50
