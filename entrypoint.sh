@@ -5,7 +5,7 @@ cat > /root/.nanobot/config.json <<EOF
   "agents": {
     "defaults": {
       "workspace": "/root/.nanobot/workspace",
-      "model": "meta-llama/llama-4-maverick:free",
+      "model": "arcee-ai/trinity-large-preview:free",
       "maxTokens": 8192,
       "temperature": 0.7,
       "maxToolIterations": 20,
