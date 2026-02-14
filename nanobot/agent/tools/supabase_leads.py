@@ -1,6 +1,7 @@
 """Supabase leads report tool — fetches and analyzes leads in one step."""
 
 import json
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -17,19 +18,12 @@ class SupabaseLeadsReportTool(Tool):
         "Generate a leads report from the Supabase database. "
         "Shows: new leads (last 10 days), stale leads (not updated in 7 days), "
         "site visit scheduled/confirmed leads, and hot leads. "
-        "Uses notes and updated_at to understand latest status."
+        "Uses notes and updated_at to understand latest status. "
+        "Credentials are loaded from environment variables automatically — no need to pass them."
     )
     parameters = {
         "type": "object",
         "properties": {
-            "supabase_url": {
-                "type": "string",
-                "description": "Supabase project URL, e.g. https://xxx.supabase.co"
-            },
-            "supabase_key": {
-                "type": "string",
-                "description": "Supabase anon/service key (JWT)"
-            },
             "days_new": {
                 "type": "string",
                 "description": "Days to look back for new leads. Default: '10'"
@@ -39,17 +33,21 @@ class SupabaseLeadsReportTool(Tool):
                 "description": "Days without update to consider stale. Default: '7'"
             }
         },
-        "required": ["supabase_url", "supabase_key"]
+        "required": []
     }
 
     async def execute(
         self,
-        supabase_url: str,
-        supabase_key: str,
         days_new: str | int = "10",
         days_stale: str | int = "7",
         **kwargs: Any,
     ) -> str:
+        # Read credentials from env vars (set in entrypoint.sh)
+        supabase_url = kwargs.get("supabase_url") or os.environ.get("SUPABASE_URL", "")
+        supabase_key = kwargs.get("supabase_key") or os.environ.get("SUPABASE_KEY", "")
+        if not supabase_url or not supabase_key:
+            return "Error: SUPABASE_URL and SUPABASE_KEY environment variables are not set."
+
         if isinstance(days_new, str):
             days_new = int(days_new) if days_new.strip().isdigit() else 10
         if isinstance(days_stale, str):

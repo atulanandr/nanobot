@@ -44,7 +44,53 @@ cat > /root/.nanobot/config.json <<EOF
 }
 EOF
 
-mkdir -p /root/.nanobot/workspace
+mkdir -p /root/.nanobot/workspace/memory
+
+# Export Supabase credentials for the leads_report tool
+export SUPABASE_URL="${SUPABASE_URL}"
+export SUPABASE_KEY="${SUPABASE_KEY}"
+
+# Seed MEMORY.md with persistent knowledge (only if not already seeded)
+if [ ! -f /root/.nanobot/workspace/memory/MEMORY.md ]; then
+cat > /root/.nanobot/workspace/memory/MEMORY.md <<'MEMEOF'
+# Nanobot Persistent Memory
+
+## Supabase Database
+- Project: TownPark Real Estate CRM
+- Tables: `leads`, `lead_notes`
+- Credentials are in SUPABASE_URL and SUPABASE_KEY env vars (auto-loaded by leads_report tool)
+- RLS is enabled with public SELECT policy on leads table
+
+## Leads Report Format
+When asked for a leads report, ALWAYS use the `leads_report` tool (no parameters needed).
+The tool automatically:
+- Reads Supabase credentials from environment variables
+- Fetches all leads and lead_notes
+- Generates a formatted report with these sections:
+  1. 📊 Header with total count and project breakdown
+  2. 🆕 New Leads — added in last 10 days
+  3. 🏠 Site Visit — Scheduled/Confirmed/Done
+  4. 🔥 Hot Leads — priority=hot, needs attention
+  5. ⏰ Stale Leads — no update in 7+ days (excludes Lost/Junk)
+
+DO NOT pass supabase_url or supabase_key to the tool — they are read from env vars.
+
+## Cron Jobs
+- Daily leads report: cron expression `0 9 * * *` (9:00 AM UTC daily)
+- Cron job message should be: "Generate the daily leads report using the leads_report tool and share it."
+- Deliver to Slack channel: C0AELBZHDNK
+- Do NOT create duplicate cron jobs. Check existing jobs first with `cron list`.
+
+## User Preferences
+- User: Atul
+- Channel: Slack
+- Slack report channel: C0AELBZHDNK
+- Prefers concise, actionable reports
+- Wants to see notes and follow-up dates per lead
+- Does not want Lost/Junk leads in stale section
+MEMEOF
+echo "MEMORY.md seeded."
+fi
 
 # Start a minimal HTTP health check server in the background
 # (Render requires an open port to detect the service)
