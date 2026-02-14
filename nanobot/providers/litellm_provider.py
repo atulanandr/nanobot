@@ -156,9 +156,16 @@ class LiteLLMProvider(LLMProvider):
             response = await acompletion(**kwargs)
             return self._parse_response(response)
         except Exception as e:
-            # Return error as content for graceful handling
+            # Try to recover content from malformed function call errors
+            # (e.g. Gemini via OpenRouter returns finish_reason='error' with
+            # MALFORMED_FUNCTION_CALL but still includes useful text content)
+            error_str = str(e)
+            if "MALFORMED_FUNCTION_CALL" in error_str or "finish_reason" in error_str:
+                content = self._extract_content_from_error(error_str)
+                if content:
+                    return LLMResponse(content=content, finish_reason="stop")
             return LLMResponse(
-                content=f"Error calling LLM: {str(e)}",
+                content=f"Error calling LLM: {error_str}",
                 finish_reason="error",
             )
     
@@ -202,6 +209,24 @@ class LiteLLMProvider(LLMProvider):
             reasoning_content=reasoning_content,
         )
     
+    @staticmethod
+    def _extract_content_from_error(error_str: str) -> str | None:
+        """Try to extract usable text content from a LiteLLM error.
+
+        Some providers (e.g. Gemini via OpenRouter) return useful content
+        alongside a MALFORMED_FUNCTION_CALL error. We recover it here.
+        """
+        import re
+        # Look for 'content': '...' in the raw response object
+        match = re.search(r"'content':\s*'(.*?)'(?:,\s*'refusal')", error_str, re.DOTALL)
+        if match:
+            content = match.group(1)
+            # Unescape escaped quotes
+            content = content.replace("\\'", "'").replace("\\n", "\n")
+            if len(content) > 20:  # Only return if meaningful
+                return content
+        return None
+
     def get_default_model(self) -> str:
         """Get the default model."""
         return self.default_model
