@@ -52,7 +52,7 @@ class WebSearchTool(Tool):
         "type": "object",
         "properties": {
             "query": {"type": "string", "description": "Search query"},
-            "count": {"type": "integer", "description": "Results (1-10)", "minimum": 1, "maximum": 10}
+            "count": {"type": "string", "description": "Number of results (1-10) as a string, e.g. '5'"}
         },
         "required": ["query"]
     }
@@ -61,11 +61,13 @@ class WebSearchTool(Tool):
         self.api_key = api_key or os.environ.get("BRAVE_API_KEY", "")
         self.max_results = max_results
     
-    async def execute(self, query: str, count: int | None = None, **kwargs: Any) -> str:
+    async def execute(self, query: str, count: int | str | None = None, **kwargs: Any) -> str:
         if not self.api_key:
             return "Error: BRAVE_API_KEY not configured"
         
         try:
+            if isinstance(count, str):
+                count = int(count) if count.strip().isdigit() else None
             n = min(max(count or self.max_results, 1), 10)
             async with httpx.AsyncClient() as client:
                 r = await client.get(
@@ -99,8 +101,8 @@ class WebFetchTool(Tool):
         "type": "object",
         "properties": {
             "url": {"type": "string", "description": "URL to fetch"},
-            "extractMode": {"type": "string", "enum": ["markdown", "text"], "default": "markdown"},
-            "maxChars": {"type": "integer", "minimum": 100}
+            "extractMode": {"type": "string", "description": "Extract mode: 'markdown' or 'text'. Default: markdown"},
+            "maxChars": {"type": "string", "description": "Max characters to return as a number string, e.g. '50000'"}
         },
         "required": ["url"]
     }
@@ -108,9 +110,15 @@ class WebFetchTool(Tool):
     def __init__(self, max_chars: int = 50000):
         self.max_chars = max_chars
     
-    async def execute(self, url: str, extractMode: str = "markdown", maxChars: int | None = None, **kwargs: Any) -> str:
+    async def execute(self, url: str, extractMode: str = "markdown", maxChars: int | str | None = None, **kwargs: Any) -> str:
         from readability import Document
 
+        # Sanitize extractMode — models may pass invalid values like "json"
+        if extractMode not in ("markdown", "text"):
+            extractMode = "markdown"
+        # Sanitize maxChars — models may pass as string
+        if isinstance(maxChars, str):
+            maxChars = int(maxChars) if maxChars.strip().isdigit() else None
         max_chars = maxChars or self.max_chars
 
         # Validate URL before fetching

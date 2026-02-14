@@ -5,7 +5,7 @@ cat > /root/.nanobot/config.json <<EOF
   "agents": {
     "defaults": {
       "workspace": "/root/.nanobot/workspace",
-      "model": "groq/meta-llama/llama-4-scout-17b-16e-instruct",
+      "model": "google/gemini-2.0-flash-001",
       "maxTokens": 8192,
       "temperature": 0.7,
       "maxToolIterations": 20,
@@ -13,8 +13,8 @@ cat > /root/.nanobot/config.json <<EOF
     }
   },
   "providers": {
-    "groq": {
-      "apiKey": "${GROQ_API_KEY}",
+    "openrouter": {
+      "apiKey": "${OPENROUTER_API_KEY}",
       "apiBase": null,
       "extraHeaders": null
     }
