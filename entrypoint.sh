@@ -5,7 +5,7 @@ cat > /root/.nanobot/config.json <<EOF
   "agents": {
     "defaults": {
       "workspace": "/root/.nanobot/workspace",
-      "model": "google/gemini-2.0-flash-001",
+      "model": "anthropic/claude-3.5-haiku",
       "maxTokens": 8192,
       "temperature": 0.7,
       "maxToolIterations": 20,
