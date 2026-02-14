@@ -23,6 +23,14 @@ cat > /root/.nanobot/config.json <<EOF
     "host": "0.0.0.0",
     "port": ${PORT:-10000}
   },
+  "channels": {
+    "whatsapp": {
+      "enabled": true,
+      "bridgeUrl": "ws://localhost:3001",
+      "bridgeToken": "",
+      "allowFrom": []
+    }
+  },
   "tools": {
     "web": { "search": { "apiKey": "", "maxResults": 5 } },
     "exec": { "timeout": 60 },
@@ -50,5 +58,9 @@ class Handler(BaseHTTPRequestHandler):
 server = HTTPServer(('0.0.0.0', ${PORT:-10000}), Handler)
 server.serve_forever()
 " &
+
+# Start the WhatsApp bridge (Node.js) in the background
+cd /app/bridge && node dist/index.js &
+cd /app
 
 exec nanobot gateway
