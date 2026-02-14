@@ -5,7 +5,7 @@ services:
     plan: free
     dockerCommand: /app/entrypoint.sh
     envVars:
-      - key: GROQ_API_KEY
+      - key: GEMINI_API_KEY
         sync: false
       - key: SLACK_BOT_TOKEN
         sync: false
